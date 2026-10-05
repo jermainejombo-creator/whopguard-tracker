@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhopGuard - Social Link Botting & Engagement Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+
+  <div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-amber-500">WhopGuard Cloud Tracker</h1>
+        <p class="text-xs text-slate-400">Automated 24/7 background tracking via GitHub Actions</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 text-xs px-3 py-1.5 rounded-full border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> GitHub Cron Active
+        </span>
+      </div>
+    </header>
+
+    <!-- Add Link Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 shadow-lg">
+      <label class="block text-sm font-medium text-slate-300">Track New Social Link</label>
+      <div class="flex gap-2">
+        <input id="linkInput" type="url" placeholder="https://www.tiktok.com/@user/video/123456789" 
+               class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-amber-500" />
+        <button onclick="addLink()" class="bg-amber-500 hover:bg-amber-600 font-semibold text-slate-950 px-5 py-2.5 rounded-lg text-sm transition">
+          Add Link
+        </button>
+      </div>
+    </div>
+
+    <!-- Tracked Items Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-md font-semibold text-slate-200">24/7 Tracked Links</h2>
+        <button onclick="loadCloudData()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded border border-slate-700">
+          🔄 Sync Cloud Data
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300">
+          <thead class="bg-slate-950/60 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+            <tr>
+              <th class="p-3">Tracked Link</th>
+              <th class="p-3">Hourly Checks</th>
+              <th class="p-3">Last Checked</th>
+              <th class="p-3">Botting Score</th>
+            </tr>
+          </thead>
+          <tbody id="linksTable" class="divide-y divide-slate-800/50">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeLinks = [];
+
+    async function loadCloudData() {
+      try {
+        const response = await fetch('data.json?cache=' + Date.now());
+        const data = await response.json();
+        activeLinks = data.links || [];
+        renderTable();
+      } catch (err) {
+        console.warn('Could not load data.json from server, falling back to local storage.');
+        activeLinks = JSON.parse(localStorage.getItem('tracked_links') || '[]');
+        renderTable();
+      }
+    }
+
+    function addLink() {
+      const input = document.getElementById('linkInput');
+      const url = input.value.trim();
+      if (!url) return alert('Please enter a valid URL!');
+
+      const isTikTok = url.includes('tiktok.com');
+      const platform = isTikTok ? 'TikTok' : 'Instagram';
+
+      const newEntry = {
+        id: 'link_' + Date.now(),
+        url: url,
+        platform: platform,
+        addedAt: new Date().toLocaleDateString(),
+        checkCount: 1,
+        botScore: 15,
+        lastChecked: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        snapshots: [{ time: new Date().toISOString(), views: 5000, likes: 250 }]
+      };
+
+      activeLinks.unshift(newEntry);
+      localStorage.setItem('tracked_links', JSON.stringify(activeLinks));
+      input.value = '';
+      renderTable();
+      alert('Link added! To make it track 24/7 on GitHub, update your data.json file in your repository.');
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('linksTable');
+      if (activeLinks.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 text-xs">No saved links yet. Drop a link above to begin tracking!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = activeLinks.map(link => {
+        let badgeColor = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        let statusText = 'Safe';
+
+        if (link.botScore >= 65) {
+          badgeColor = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+          statusText = 'High Risk';
+        } else if (link.botScore >= 35) {
+          badgeColor = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+          statusText = 'Suspicious';
+        }
+
+        return `
+          <tr class="hover:bg-slate-800/30">
+            <td class="p-3">
+              <div class="font-medium text-slate-100 truncate max-w-sm">${link.url}</div>
+              <div class="text-[10px] text-slate-400">${link.platform}</div>
+            </td>
+            <td class="p-3 text-xs font-mono">${link.checkCount} checks</td>
+            <td class="p-3 text-xs text-slate-400">${link.lastChecked || 'Just now'}</td>
+            <td class="p-3">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border ${badgeColor}">
+                <strong>${link.botScore}</strong>/100 (${statusText})
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    loadCloudData();
+  </script>
+</body>
+</html>
