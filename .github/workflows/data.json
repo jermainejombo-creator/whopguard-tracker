@@ -1,0 +1,20 @@
+{
+  "links": [
+    {
+      "id": "link_1712345678",
+      "url": "https://www.tiktok.com/@crypto_king_clips/video/73456789",
+      "platform": "TikTok",
+      "addedAt": "10/05/2026, 12:00 PM",
+      "checkCount": 1,
+      "botScore": 72,
+      "lastChecked": "12:00 PM",
+      "snapshots": [
+        {
+          "time": "2026-10-05T12:00:00.000Z",
+          "views": 250000,
+          "likes": 1500
+        }
+      ]
+    }
+  ]
+}
