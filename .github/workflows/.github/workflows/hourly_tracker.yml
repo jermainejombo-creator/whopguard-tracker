@@ -1,0 +1,33 @@
+name: Hourly Social Link Tracker
+
+on:
+  schedule:
+    # Runs automatically at minute 0 of every hour
+    - cron: '0 * * * *'
+  workflow_dispatch: # Enables manual "Run workflow" button in Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  track-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Execute Tracker Script
+        run: node tracker.js
+
+      - name: Commit and Push Updated Data
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update link tracking metrics [skip ci]" && git push)
+          
